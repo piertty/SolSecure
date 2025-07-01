@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Solana Transaction Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.1/lib/index.iife.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #9945ff;
+            --primary-dark: #7d2ed8;
+            --secondary: #14f195;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f5f5f5;
+            --gray: #2d2d2d;
+            --success: #00c853;
+            --warning: #ffab00;
+            --danger: #ff1744;
+            --card-bg: rgba(25, 25, 35, 0.8);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --solflare: #2a2a2a;
+            --glow: 0 0 15px rgba(153, 69, 255, 0.5);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(153, 69, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(20, 241, 149, 0.1) 0%, transparent 20%);
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text; /* Version standard */
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .network-selector {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .network-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .network-toggle {
+            display: flex;
+            background: var(--gray);
+            border-radius: 50px;
+            padding: 5px;
+            position: relative;
+        }
+        
+        .network-option {
+            padding: 8px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 2;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .network-active {
+            background: var(--primary);
+            box-shadow: var(--glow);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+            margin-bottom: 25px;
+            color: var(--secondary);
+        }
+        
+        .card-title i {
+            font-size: 26px;
+        }
+        
+        .wallet-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .wallet-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 500px) {
+            .wallet-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .wallet-btn {
+            background: var(--gray);
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--light);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .wallet-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .wallet-btn:hover::before {
+            left: 100%;
+        }
+        
+        .wallet-btn:hover {
+            transform: translateY(-3px);
+        }
+        
+        .wallet-btn i {
+            font-size: 24px;
+        }
+        
+        .wallet-btn.phantom {
+            background: linear-gradient(45deg, #9945ff, #7d2ed8);
+        }
+        
+        .wallet-btn.solflare {
+            background: linear-gradient(45deg, var(--solflare), #1a1a1a);
+        }
+        
+        .wallet-info {
+            display: none;
+            background: var(--gray);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .wallet-info::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--secondary);
+        }
+        
+        .wallet-info.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .wallet-address {
+            font-size: 14px;
+            word-break: break-all;
+            margin-bottom: 15px;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+        
+        .wallet-balance {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+        }
+        
+        .balance-value {
+            font-weight: 700;
+            color: var(--secondary);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(153, 69, 255, 0.3);
+        }
+        
+        .form-input.invalid {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(255, 23, 68, 0.3);
+        }
+        
+        .form-error {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+            background: linear-gradient(45deg, var(--primary), var(--primary-dark));
+            color: white;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(45deg, var(--primary-dark), var(--primary));
+            transition: width 0.5s ease;
+            z-index: -1;
+        }
+        
+        .btn:hover::before {
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--glow);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn:disabled::before {
+            width: 0;
+        }
+        
+        .btn i {
+            font-size: 20px;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, var(--success), #009624);
+        }
+        
+        .receipt-section {
+            display: none;
+        }
+        
+        .receipt-section.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .receipt-content {
+            background: var(--gray);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            font-family: monospace;
+            border-left: 4px solid var(--secondary);
+        }
+        
+        .receipt-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .receipt-label {
+            width: 180px;
+            opacity: 0.8;
+        }
+        
+        .receipt-value {
+            flex: 1;
+            word-break: break-all;
+            font-weight: 500;
+        }
+        
+        .transaction-id {
+            color: var(--secondary);
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 500px) {
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background: rgba(153, 69, 255, 0.1);
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .status-processing {
+            background: rgba(255, 171, 0, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+        
+        .status-success {
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .status-error {
+            background: rgba(255, 23, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--secondary);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .info-box ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .info-box li {
+            margin-bottom: 5px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 40px;
+            border-top: 1px solid var(--card-border);
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .solana-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(153, 69, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 50px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+        
+        .pulse {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: var(--secondary);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.7; }
+        }
+        
+        .rpc-selector {
+            margin-top: 20px;
+        }
+        
+        .rpc-label {
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .rpc-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 14px;
+        }
+        
+        .rpc-status {
+            font-size: 12px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .rpc-status.connected::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        
+        .rpc-status.error::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+        
+        .error-details {
+            background: rgba(255, 23, 68, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 13px;
+            font-family: monospace;
+            display: none;
+        }
+        
+        .error-details.active {
+            display: block;
+        }
+        
+        .show-error {
+            color: var(--danger);
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 5px;
+            display: inline-block;
+        }
+        
+        .debug-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        
+        .signature-counter {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+        
+        .signature-label {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .signature-value {
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .signature-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .signature-btn {
+            background: var(--gray);
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--light);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .signature-btn:hover {
+            background: var(--primary);
+        }
+        
+        .signature-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .powered-by {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+        
+        .powered-by img {
+            height: 24px;
+        }
+        
+        .transaction-status {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .status-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 120px;
+        }
+        
+        .status-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -60px;
+            width: 120px;
+            height: 2px;
+            background: var(--gray);
+        }
+        
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray);
+            margin-bottom: 10px;
+            z-index: 2;
+        }
+        
+        .step-icon.active {
+            background: var(--primary);
+        }
+        
+        .step-icon.completed {
+            background: var(--success);
+        }
+        
+        .step-label {
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="logo-text">SOL Transaction Portal</div>
+            </div>
+            <div class="network-selector">
+                <div class="network-label">NETWORK:</div>
+                <div class="network-toggle">
+                    <div class="network-option network-active" data-network="devnet">Devnet</div>
+                    <div class="network-option" data-network="mainnet">Mainnet</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="transaction-status">
+            <div class="status-step">
+                <div class="step-icon completed">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="step-label">Connect Wallet</div>
+            </div>
+            <div class="status-step">
+                <div class="step-icon">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="step-label">Enter Details</div>
+            </div>
+            <div class="status-step">
+                <div class="step-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="step-label">Authorize</div>
+            </div>
+            <div class="status-step">
+                <div class="step-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="step-label">Complete</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-wallet"></i>
+                    <span>Wallet Connection</span>
+                </div>
+                
+                <div class="wallet-section">
+                    <div class="wallet-buttons">
+                        <button class="wallet-btn phantom" id="phantomBtn">
+                            <i class="fas fa-wallet"></i>
+                            Phantom Wallet
+                        </button>
+                        <button class="wallet-btn solflare" id="solflareBtn">
+                            <i class="fas fa-fire"></i>
+                            Solflare Wallet
+                        </button>
+                    </div>
+                    
+                    <div class="wallet-info" id="walletInfo">
+                        <div class="wallet-address" id="walletAddress">No wallet connected</div>
+                        <div class="wallet-balance">
+                            <span>Balance:</span>
+                            <span class="balance-value" id="walletBalance">0.00 SOL</span>
+                        </div>
+                    </div>
+                    
+                    <div class="rpc-selector">
+                        <label class="rpc-label">Custom RPC Endpoint (Optional):</label>
+                        <input type="text" class="rpc-input" id="rpcInput" placeholder="https://api.mainnet-beta.solana.com">
+                        <div class="rpc-status" id="rpcStatus">Using default endpoint</div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <p><strong>Wallet Connection Requirements:</strong></p>
+                        <ul>
+                            <li>Install a Solana wallet extension (Phantom or Solflare)</li>
+                            <li>Make sure your wallet is funded for transactions</li>
+                            <li>For Devnet: Get test SOL from a faucet</li>
+                            <li>Use a reliable RPC endpoint for better performance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Transaction Details</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Amount to Send (SOL)</label>
+                    <input type="number" class="form-input" id="amountInput" placeholder="Enter SOL amount" min="0.001" step="0.001">
+                    <div class="form-error" id="amountError">Please enter a valid amount (minimum 0.001 SOL)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Destination Address</label>
+                    <input type="text" class="form-input" id="destinationInput" placeholder="Enter Solana address">
+                    <div class="form-error" id="destinationError">Please enter a valid Solana address</div>
+                </div>
+                
+                <div class="signature-counter">
+                    <div class="signature-label">Signatures Required:</div>
+                    <div class="signature-value" id="signatureCount">1</div>
+                    <div class="signature-controls">
+                        <button class="signature-btn" id="decreaseSignatures" disabled>-</button>
+                        <button class="signature-btn" id="increaseSignatures">+</button>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <p><strong>Transaction Security:</strong></p>
+                    <ul>
+                        <li>All transactions are signed securely in your wallet</li>
+                        <li>No private keys are stored or accessible by this application</li>
+                        <li>Multi-signature transactions require approval from multiple wallets</li>
+                        <li>Devnet is for testing with fake SOL</li>
+                    </ul>
+                </div>
+                
+                <button class="btn" id="authorizeBtn" disabled>
+                    <i class="fas fa-lock"></i>
+                    Authorize Transaction
+                </button>
+            </div>
+        </div>
+        
+        <div class="status-bar" id="statusBar" style="display: none;">
+            <i class="fas fa-sync fa-spin"></i>
+            <span>Processing transaction...</span>
+        </div>
+        
+        <div class="card" id="errorSection" style="display: none;">
+            <div class="card-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Transaction Error</span>
+            </div>
+            <div id="errorMessage" class="info-box"></div>
+            <div class="error-details" id="errorDetails"></div>
+            <button class="btn btn-outline" id="retryBtn" style="margin-top: 20px;">
+                <i class="fas fa-redo"></i>
+                Retry Transaction
+            </button>
+        </div>
+        
+        <div class="card receipt-section" id="receiptSection">
+            <div class="card-title">
+                <i class="fas fa-receipt"></i>
+                <span>Transaction Receipt</span>
+            </div>
+            
+            <div class="receipt-content" id="receiptContent">
+                <div class="receipt-row">
+                    <div class="receipt-label">Transaction ID:</div>
+                    <div class="receipt-value transaction-id" id="receiptTxId">5mLWq...Qr9yT</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Status:</div>
+                    <div class="receipt-value" id="receiptStatus">Confirmed</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">From Address:</div>
+                    <div class="receipt-value" id="receiptFrom">Hx8s3...9F2kL</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">To Address:</div>
+                    <div class="receipt-value" id="receiptTo">Gt7wP...4Rz1q</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Amount:</div>
+                    <div class="receipt-value" id="receiptAmount">1.500 SOL</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Network Fee:</div>
+                    <div class="receipt-value" id="receiptFee">0.0005 SOL</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Signatures:</div>
+                    <div class="receipt-value" id="receiptSignatures">1</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Timestamp:</div>
+                    <div class="receipt-value" id="receiptTimestamp">2023-10-15 14:30:22 UTC</div>
+                </div>
+                <div class="receipt-row">
+                    <div class="receipt-label">Network:</div>
+                    <div class="receipt-value" id="receiptNetwork">Devnet</div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-outline" id="newTransactionBtn">
+                    <i class="fas fa-plus"></i>
+                    New Transaction
+                </button>
+                <button class="btn" id="downloadReceiptBtn">
+                    <i class="fas fa-download"></i>
+                    Download Receipt (PDF)
+                </button>
+            </div>
+        </div>
+        
+        <div class="debug-info">
+            Solana Web3.js v1.70.1 | Network: <span id="debugNetwork">devnet</span> | RPC: <span id="debugRpc">default</span> | Encoding: TypedArray
+        </div>
+        
+        <div class="powered-by">
+            <span>Powered by</span>
+            <img src="https://solana.com/_next/static/media/solanaLogo.5f015f5e.svg" alt="Solana">
+            <span>Blockchain</span>
+        </div>
+        
+        <footer>
+            <p>Solana Transaction Portal v4.0 | Secure Web3 Transactions</p>
+            <p>This interface provides a secure way to manage Solana transactions. Always verify transaction details before confirming.</p>
+            <div class="solana-badge">
+                <span class="pulse"></span>
+                <span>SOLANA NETWORK ACTIVE</span>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // Global state
+        const state = {
+            connected: false,
+            wallet: null,
+            walletAddress: null,
+            balance: 0,
+            network: 'devnet',
+            customRpc: null,
+            rpcStatus: 'default',
+            requiredSignatures: 1,
+            transaction: {
+                amount: 0,
+                destination: '',
+                fee: 0.0005
+            },
+            receipt: null
+        };
+        
+        // DOM Elements
+        const elements = {
+            phantomBtn: document.getElementById('phantomBtn'),
+            solflareBtn: document.getElementById('solflareBtn'),
+            walletInfo: document.getElementById('walletInfo'),
+            walletAddress: document.getElementById('walletAddress'),
+            walletBalance: document.getElementById('walletBalance'),
+            amountInput: document.getElementById('amountInput'),
+            destinationInput: document.getElementById('destinationInput'),
+            authorizeBtn: document.getElementById('authorizeBtn'),
+            statusBar: document.getElementById('statusBar'),
+            receiptSection: document.getElementById('receiptSection'),
+            receiptTxId: document.getElementById('receiptTxId'),
+            receiptStatus: document.getElementById('receiptStatus'),
+            receiptFrom: document.getElementById('receiptFrom'),
+            receiptTo: document.getElementById('receiptTo'),
+            receiptAmount: document.getElementById('receiptAmount'),
+            receiptFee: document.getElementById('receiptFee'),
+            receiptTimestamp: document.getElementById('receiptTimestamp'),
+            receiptNetwork: document.getElementById('receiptNetwork'),
+            receiptSignatures: document.getElementById('receiptSignatures'),
+            downloadReceiptBtn: document.getElementById('downloadReceiptBtn'),
+            newTransactionBtn: document.getElementById('newTransactionBtn'),
+            networkOptions: document.querySelectorAll('.network-option'),
+            rpcInput: document.getElementById('rpcInput'),
+            rpcStatus: document.getElementById('rpcStatus'),
+            errorSection: document.getElementById('errorSection'),
+            errorMessage: document.getElementById('errorMessage'),
+            errorDetails: document.getElementById('errorDetails'),
+            retryBtn: document.getElementById('retryBtn'),
+            debugNetwork: document.getElementById('debugNetwork'),
+            debugRpc: document.getElementById('debugRpc'),
+            signatureCount: document.getElementById('signatureCount'),
+            decreaseSignatures: document.getElementById('decreaseSignatures'),
+            increaseSignatures: document.getElementById('increaseSignatures'),
+            amountError: document.getElementById('amountError'),
+            destinationError: document.getElementById('destinationError')
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            detectWalletExtensions();
+            updateStatusSteps();
+        });
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Wallet connection
+            elements.phantomBtn.addEventListener('click', () => connectWallet('phantom'));
+            elements.solflareBtn.addEventListener('click', () => connectWallet('solflare'));
+            
+            // Transaction inputs
+            elements.amountInput.addEventListener('input', checkFormValidity);
+            elements.destinationInput.addEventListener('input', checkFormValidity);
+            
+            // Authorization button
+            elements.authorizeBtn.addEventListener('click', authorizeTransaction);
+            
+            // Signature controls
+            elements.decreaseSignatures.addEventListener('click', () => updateSignatures(-1));
+            elements.increaseSignatures.addEventListener('click', () => updateSignatures(1));
+            
+            // Network selection
+            elements.networkOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Remove active class from all options
+                    elements.networkOptions.forEach(opt => opt.classList.remove('network-active'));
+                    
+                    // Add active class to clicked option
+                    option.classList.add('network-active');
+                    
+                    // Update network in state
+                    state.network = option.dataset.network;
+                    
+                    // Refresh balance if wallet is connected
+                    if (state.connected) {
+                        refreshWalletBalance();
+                    }
+                });
+            });
+            
+            // Receipt actions
+            elements.downloadReceiptBtn.addEventListener('click', downloadReceipt);
+            elements.newTransactionBtn.addEventListener('click', resetTransaction);
+            
+            // RPC input
+            elements.rpcInput.addEventListener('blur', updateRpcEndpoint);
+            
+            // Error handling
+            elements.retryBtn.addEventListener('click', () => {
+                elements.errorSection.style.display = 'none';
+                elements.errorDetails.classList.remove('active');
+                authorizeTransaction();
+            });
+        }
+        
+        // Update signature count
+        function updateSignatures(delta) {
+            state.requiredSignatures = Math.max(1, Math.min(2, state.requiredSignatures + delta));
+            elements.signatureCount.textContent = state.requiredSignatures;
+            
+            // Update button states
+            elements.decreaseSignatures.disabled = state.requiredSignatures <= 1;
+            elements.increaseSignatures.disabled = state.requiredSignatures >= 2;
+        }
+        
+        // Detect wallet extensions
+        function detectWalletExtensions() {
+            const wallets = {
+                phantom: window.phantom?.solana?.isPhantom || window.solana?.isPhantom,
+                solflare: window.solflare?.isSolflare || window.solana?.isSolflare
+            };
+            
+            // Enable/disable buttons based on detected wallets
+            elements.phantomBtn.disabled = !wallets.phantom;
+            elements.solflareBtn.disabled = !wallets.solflare;
+            
+            // Add tooltips for disabled wallets
+            if (!wallets.phantom) {
+                elements.phantomBtn.title = "Phantom wallet not detected";
+            }
+            if (!wallets.solflare) {
+                elements.solflareBtn.title = "Solflare wallet not detected";
+            }
+        }
+        
+        // Update RPC endpoint
+        function updateRpcEndpoint() {
+            const rpcUrl = elements.rpcInput.value.trim();
+            if (!rpcUrl) {
+                state.customRpc = null;
+                elements.rpcStatus.textContent = "Using default endpoint";
+                elements.rpcStatus.className = "rpc-status";
+                return;
+            }
+            
+            // Validate RPC URL format
+            if (!rpcUrl.startsWith('http')) {
+                showNotification("Invalid RPC URL. Must start with http/https", "error");
+                return;
+            }
+            
+            // Test RPC connection
+            testRpcConnection(rpcUrl);
+        }
+        
+        // Test RPC connection
+        async function testRpcConnection(rpcUrl) {
+            try {
+                elements.rpcStatus.textContent = "Testing RPC connection...";
+                
+                // Create temporary connection
+                const testConnection = new solanaWeb3.Connection(rpcUrl);
+                
+                // Get version to test connection
+                const version = await testConnection.getVersion();
+                
+                // Update status
+                state.customRpc = rpcUrl;
+                elements.rpcStatus.textContent = "RPC connected successfully";
+                elements.rpcStatus.className = "rpc-status connected";
+                showNotification("RPC endpoint connected successfully");
+                
+            } catch (error) {
+                elements.rpcStatus.textContent = `RPC connection failed: ${error.message}`;
+                elements.rpcStatus.className = "rpc-status error";
+                showNotification("Failed to connect to RPC endpoint", "error");
+                state.customRpc = null;
+            }
+        }
+        
+        // Connect to wallet
+        async function connectWallet(walletType) {
+            try {
+                let provider;
+                
+                switch (walletType) {
+                    case 'phantom':
+                        provider = window.phantom?.solana || window.solana;
+                        if (!provider?.isPhantom) {
+                            throw new Error('Phantom wallet not found');
+                        }
+                        break;
+                    case 'solflare':
+                        provider = window.solflare || window.solana;
+                        if (!provider?.isSolflare) {
+                            throw new Error('Solflare wallet not found');
+                        }
+                        break;
+                    default:
+                        throw new Error('Unsupported wallet type');
+                }
+                
+                if (!provider) {
+                    throw new Error('Wallet provider not found');
+                }
+                
+                // Connect to the wallet
+                const response = await provider.connect();
+                const publicKey = response.publicKey.toString();
+                
+                // Set state
+                state.connected = true;
+                state.wallet = walletType;
+                state.walletAddress = publicKey;
+                
+                // Update UI
+                elements.walletInfo.classList.add('active');
+                elements.walletAddress.textContent = publicKey;
+                
+                // Get balance
+                await refreshWalletBalance();
+                
+                // Enable authorize button if inputs are valid
+                checkFormValidity();
+                
+                // Show notification
+                showNotification(`Connected to ${walletType} wallet`);
+                
+                // Update status steps
+                updateStatusSteps();
+                
+            } catch (error) {
+                showNotification(`Connection failed: ${error.message}`, "error");
+                console.error('Wallet connection error:', error);
+            }
+        }
+        
+        // Update status steps
+        function updateStatusSteps() {
+            const steps = document.querySelectorAll('.status-step');
+            
+            if (state.connected) {
+                steps[0].querySelector('.step-icon').classList.add('completed');
+                steps[1].querySelector('.step-icon').classList.add('active');
+            } else {
+                steps[0].querySelector('.step-icon').classList.remove('completed');
+                steps[1].querySelector('.step-icon').classList.remove('active');
+            }
+        }
+        
+        // Get connection based on network and custom RPC
+        function getConnection() {
+            let endpoint;
+            
+            if (state.customRpc) {
+                endpoint = state.customRpc;
+            } else {
+                endpoint = state.network === 'devnet' 
+                    ? solanaWeb3.clusterApiUrl('devnet')
+                    : solanaWeb3.clusterApiUrl('mainnet-beta');
+            }
+            
+            return new solanaWeb3.Connection(endpoint, "confirmed");
+        }
+        
+        // Refresh wallet balance
+        async function refreshWalletBalance() {
+            try {
+                if (!state.connected || !state.walletAddress) return;
+                
+                // Create connection
+                const connection = getConnection();
+                
+                // Get balance
+                const publicKey = new solanaWeb3.PublicKey(state.walletAddress);
+                const balance = await connection.getBalance(publicKey);
+                
+                // Convert lamports to SOL
+                state.balance = balance / solanaWeb3.LAMPORTS_PER_SOL;
+                
+                // Update UI
+                elements.walletBalance.textContent = state.balance.toFixed(4) + ' SOL';
+                
+                // Check form validity
+                checkFormValidity();
+                
+            } catch (error) {
+                showNotification(`Failed to get balance: ${error.message}`, "error");
+                console.error('Balance refresh error:', error);
+                // Set balance to 0 to prevent false positive
+                state.balance = 0;
+                elements.walletBalance.textContent = '0.0000 SOL';
+                checkFormValidity();
+            }
+        }
+        
+        // Check if form is valid
+        function checkFormValidity() {
+            let valid = true;
+            let amountValid = true;
+            let destinationValid = true;
+            
+            // Reset error states
+            elements.amountInput.classList.remove('invalid');
+            elements.destinationInput.classList.remove('invalid');
+            elements.amountError.style.display = 'none';
+            elements.destinationError.style.display = 'none';
+            
+            // Get transaction amount
+            const amount = parseFloat(elements.amountInput.value) || 0;
+            state.transaction.amount = amount;
+            
+            // Validate amount
+            if (amount <= 0) {
+                valid = false;
+                amountValid = false;
+                elements.amountInput.classList.add('invalid');
+                elements.amountError.style.display = 'block';
+            }
+            
+            // Get destination address
+            state.transaction.destination = elements.destinationInput.value;
+            
+            // Validate destination address
+            if (state.transaction.destination.length === 0) {
+                valid = false;
+                destinationValid = false;
+                elements.destinationInput.classList.add('invalid');
+                elements.destinationError.style.display = 'block';
+            } else {
+                try {
+                    new solanaWeb3.PublicKey(state.transaction.destination);
+                } catch (e) {
+                    valid = false;
+                    destinationValid = false;
+                    elements.destinationInput.classList.add('invalid');
+                    elements.destinationError.style.display = 'block';
+                }
+            }
+            
+            // Check wallet connection
+            if (!state.connected) {
+                valid = false;
+            }
+            
+            // Check if balance is sufficient
+            if (valid) {
+                const totalCost = state.transaction.amount + state.transaction.fee;
+                if (state.balance < totalCost) {
+                    valid = false;
+                    showNotification('Insufficient balance', "error");
+                }
+            }
+            
+            // Update button state
+            elements.authorizeBtn.disabled = !valid;
+        }
+        
+        // Convert number to Uint8Array using TypedArray
+        function numberToUint8Array(num, byteLength) {
+            const arr = new Uint8Array(byteLength);
+            for (let i = 0; i < byteLength; i++) {
+                arr[i] = num & 0xff;
+                num = Math.floor(num / 256);
+            }
+            return arr;
+        }
+        
+        // Create transfer instruction using TypedArray
+        function createTransferInstruction(fromPubkey, toPubkey, lamports) {
+            // Instruction index for transfer is 2
+            const instructionIndex = 2;
+            
+            // Create the data buffer (4 bytes for instruction index + 8 bytes for lamports)
+            const data = new Uint8Array(4 + 8);
+            
+            // Write instruction index (little-endian)
+            data[0] = instructionIndex;
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
+            
+            // Write lamports as little-endian
+            const lamportsBytes = numberToUint8Array(lamports, 8);
+            for (let i = 0; i < 8; i++) {
+                data[4 + i] = lamportsBytes[i];
+            }
+            
+            const keys = [
+                { pubkey: fromPubkey, isSigner: true, isWritable: true },
+                { pubkey: toPubkey, isSigner: false, isWritable: true },
+            ];
+            
+            return new solanaWeb3.TransactionInstruction({
+                keys,
+                programId: solanaWeb3.SystemProgram.programId,
+                data: data,
+            });
+        }
+        
+        // Authorize transaction
+        async function authorizeTransaction() {
+            try {
+                // Show processing status
+                elements.statusBar.style.display = 'flex';
+                elements.statusBar.className = 'status-bar status-processing';
+                elements.statusBar.innerHTML = '<i class="fas fa-sync fa-spin"></i> <span>Processing transaction. Please confirm in your wallet...</span>';
+                
+                // Get provider
+                let provider;
+                switch (state.wallet) {
+                    case 'phantom':
+                        provider = window.phantom?.solana || window.solana;
+                        break;
+                    case 'solflare':
+                        provider = window.solflare || window.solana;
+                        break;
+                    default:
+                        throw new Error('Unsupported wallet');
+                }
+                
+                if (!provider) {
+                    throw new Error('Wallet provider not available');
+                }
+                
+                // Create connection
+                const connection = getConnection();
+                
+                // Get latest blockhash
+                const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+                
+                // Create transaction
+                const transaction = new solanaWeb3.Transaction({
+                    feePayer: new solanaWeb3.PublicKey(state.walletAddress),
+                    blockhash,
+                    lastValidBlockHeight
+                });
+                
+                // Add transfer instruction with proper lamports conversion
+                const lamports = Math.round(state.transaction.amount * solanaWeb3.LAMPORTS_PER_SOL);
+                const fromPubkey = new solanaWeb3.PublicKey(state.walletAddress);
+                const toPubkey = new solanaWeb3.PublicKey(state.transaction.destination);
+                
+                // Create transfer instruction using TypedArray
+                const transferInstruction = createTransferInstruction(fromPubkey, toPubkey, lamports);
+                transaction.add(transferInstruction);
+                
+                // Sign transaction
+                const signedTransaction = await provider.signTransaction(transaction);
+                
+                // Serialize the transaction using native Uint8Array
+                const rawTransaction = signedTransaction.serialize();
+                
+                // Send transaction
+                const signature = await connection.sendRawTransaction(rawTransaction);
+                
+                // Confirm transaction
+                const confirmation = await connection.confirmTransaction({
+                    signature,
+                    blockhash,
+                    lastValidBlockHeight
+                }, 'confirmed');
+                
+                // Create receipt
+                state.receipt = {
+                    txId: signature,
+                    status: confirmation.value?.err ? 'Failed' : 'Confirmed',
+                    from: state.walletAddress,
+                    to: state.transaction.destination,
+                    amount: state.transaction.amount,
+                    fee: state.transaction.fee,
+                    signatures: state.requiredSignatures,
+                    timestamp: new Date().toISOString(),
+                    network: state.network
+                };
+                
+                // Update UI
+                updateReceipt();
+                elements.receiptSection.classList.add('active');
+                
+                // Update status steps
+                const steps = document.querySelectorAll('.status-step');
+                steps[2].querySelector('.step-icon').classList.add('completed');
+                steps[3].querySelector('.step-icon').classList.add('completed');
+                
+                // Update status
+                if (confirmation.value?.err) {
+                    elements.statusBar.className = 'status-bar status-error';
+                    elements.statusBar.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Transaction failed!</span>';
+                    throw new Error('Transaction failed on-chain');
+                } else {
+                    elements.statusBar.className = 'status-bar status-success';
+                    elements.statusBar.innerHTML = '<i class="fas fa-check-circle"></i> <span>Transaction confirmed successfully!</span>';
+                }
+                
+                // Hide status after delay
+                setTimeout(() => {
+                    elements.statusBar.style.display = 'none';
+                }, 5000);
+                
+                // Refresh balance
+                await refreshWalletBalance();
+                
+            } catch (error) {
+                // Update status
+                elements.statusBar.style.display = 'none';
+                
+                // Show error section
+                elements.errorSection.style.display = 'block';
+                elements.errorMessage.innerHTML = `<p><strong>Transaction failed:</strong> ${error.message}</p>`;
+                elements.errorDetails.textContent = error.stack || error.toString();
+                
+                // Show notification
+                showNotification(`Transaction failed: ${error.message}`, "error");
+                
+                console.error('Transaction error:', error);
+            }
+        }
+        
+        // Update receipt UI
+        function updateReceipt() {
+            if (!state.receipt) return;
+            
+            elements.receiptTxId.textContent = state.receipt.txId;
+            elements.receiptStatus.textContent = state.receipt.status;
+            elements.receiptFrom.textContent = state.receipt.from;
+            elements.receiptTo.textContent = state.receipt.to;
+            elements.receiptAmount.textContent = state.receipt.amount.toFixed(4) + ' SOL';
+            elements.receiptFee.textContent = state.receipt.fee.toFixed(4) + ' SOL';
+            elements.receiptSignatures.textContent = state.receipt.signatures;
+            
+            // Format timestamp
+            const date = new Date(state.receipt.timestamp);
+            elements.receiptTimestamp.textContent = date.toLocaleString();
+            
+            elements.receiptNetwork.textContent = state.receipt.network.charAt(0).toUpperCase() + state.receipt.network.slice(1);
+        }
+        
+        // Download receipt as PDF
+        function downloadReceipt() {
+            try {
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(18);
+                doc.text('SOLANA TRANSACTION RECEIPT', 105, 20, null, null, 'center');
+                
+                // Add logo
+                doc.setFontSize(12);
+                doc.text('Solana Transaction Portal', 105, 30, null, null, 'center');
+                
+                // Add receipt details
+                doc.setFontSize(10);
+                let y = 50;
+                
+                const receiptData = [
+                    { label: 'Transaction ID:', value: state.receipt.txId },
+                    { label: 'Status:', value: state.receipt.status },
+                    { label: 'Date:', value: new Date(state.receipt.timestamp).toLocaleString() },
+                    { label: 'Network:', value: state.receipt.network },
+                    { label: 'Signatures:', value: state.receipt.signatures },
+                    { label: 'From Address:', value: state.receipt.from },
+                    { label: 'To Address:', value: state.receipt.to },
+                    { label: 'Amount:', value: state.receipt.amount.toFixed(4) + ' SOL' },
+                    { label: 'Network Fee:', value: state.receipt.fee.toFixed(4) + ' SOL' },
+                    { label: 'Total:', value: (state.receipt.amount + state.receipt.fee).toFixed(4) + ' SOL' }
+                ];
+                
+                receiptData.forEach(item => {
+                    doc.setFont(undefined, 'bold');
+                    doc.text(item.label, 20, y);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(item.value, 70, y);
+                    y += 10;
+                });
+                
+                // Add security note
+                y += 10;
+                doc.setFontSize(8);
+                doc.text('This receipt is for record purposes only. Always verify transactions on the blockchain explorer.', 105, y, null, null, 'center');
+                
+                // Save PDF
+                doc.save(`solana-transaction-${new Date().getTime()}.pdf`);
+                
+                showNotification('Receipt downloaded successfully');
+                
+            } catch (error) {
+                showNotification('Failed to generate PDF', "error");
+                console.error('PDF generation error:', error);
+            }
+        }
+        
+        // Reset for a new transaction
+        function resetTransaction() {
+            elements.amountInput.value = '';
+            elements.destinationInput.value = '';
+            elements.receiptSection.classList.remove('active');
+            elements.errorSection.style.display = 'none';
+            state.requiredSignatures = 1;
+            elements.signatureCount.textContent = '1';
+            elements.decreaseSignatures.disabled = true;
+            elements.increaseSignatures.disabled = false;
+            
+            // Reset error states
+            elements.amountInput.classList.remove('invalid');
+            elements.destinationInput.classList.remove('invalid');
+            elements.amountError.style.display = 'none';
+            elements.destinationError.style.display = 'none';
+            
+            // Reset status steps
+            const steps = document.querySelectorAll('.status-step');
+            steps[2].querySelector('.step-icon').classList.remove('completed');
+            steps[3].querySelector('.step-icon').classList.remove('completed');
+            steps[1].querySelector('.step-icon').classList.add('active');
+            
+            checkFormValidity();
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'success') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.padding = '15px 25px';
+            notification.style.borderRadius = '8px';
+            notification.style.color = 'white';
+            notification.style.zIndex = '1000';
+            notification.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+            notification.style.fontWeight = '600';
+            notification.style.transition = 'all 0.3s ease';
+            
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(45deg, #00c853, #009624)';
+            } else {
+                notification.style.background = 'linear-gradient(45deg, #ff1744, #d50000)';
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
